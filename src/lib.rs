@@ -4,20 +4,25 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)] // Read from `Cargo.toml`
 pub struct Cli {
+    /// Case sensitive search
     #[arg(short,long)]
     sensitive: bool,
     
+    /// The pattern to search for
     pub pattern: String,
+
+    /// The path to the file to read
     pub path: PathBuf,
 }
 
+
 pub fn read(cli: &Cli) {
     let content = pdf_extract::extract_text(&cli.path).unwrap();
-    let result = if !cli.sensitive {
-        search_case_insensitive(&cli.pattern, &content)
+    let result = if cli.sensitive {
+        search_case_sensitive(&cli.pattern, &content)
     }
     else {
-        search_case_sensitive(&cli.pattern, &content)
+        search_case_insensitive(&cli.pattern, &content)
     };
 
     for line in result.iter() {
@@ -28,7 +33,7 @@ pub fn read(cli: &Cli) {
 pub fn search_case_sensitive<'a>(pattern: &str, content: &'a str) -> Vec<&'a str> {
     content.
         lines().
-        filter(|line| line.contains(pattern)).
+        filter(|line| line.contains(&pattern)).
         collect()
 }
 
