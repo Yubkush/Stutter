@@ -6,7 +6,7 @@ use std::io::Error;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)] // Read from `Cargo.toml`
 pub struct Cli {
-    /// Case sensitive search
+    /// Case sensitive search in English
     #[arg(short,long, default_value_t = false)]
     sensitive: bool,
 
