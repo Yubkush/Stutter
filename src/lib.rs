@@ -7,6 +7,10 @@ pub struct Cli {
     /// Case sensitive search
     #[arg(short,long)]
     sensitive: bool,
+
+    /// Search in English
+    #[arg(short,long, default_value_t = false)]
+    english: bool,
     
     /// The pattern to search for
     pub pattern: String,
@@ -18,7 +22,11 @@ pub struct Cli {
 
 pub fn read(cli: &Cli) {
     let content = pdf_extract::extract_text(&cli.path).unwrap();
-    let result = if cli.sensitive {
+    let result = if !cli.english {
+        let pattern = cli.pattern.chars().rev().collect::<String>();
+        search_case_sensitive(&pattern, &content)
+    }
+    else if cli.sensitive {
         search_case_sensitive(&cli.pattern, &content)
     }
     else {
