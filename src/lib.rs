@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 use std::fs::{self, DirEntry};
 use std::io::Error;
 use std::path::PathBuf;
@@ -28,46 +29,83 @@ pub fn read(cli: &Cli) {
     }
 }
 
+pub fn print_pattern_sensitive(path: &str, pattern: &str, line: &str) {
+    let indices = line
+        .match_indices(pattern)
+        .map(|(i, _)| i)
+        .collect::<Vec<usize>>();
+    for index in indices.iter() {
+        let (first, last) = line.split_at(*index);
+        let (pattern, last) = last.split_at(pattern.len());
+        println!("{}: {}{}{}", path, first, pattern.red(), last);
+    }
+}
+
+pub fn print_pattern_insensitive(path: &str, pattern: &str, line: &str) {
+    let pattern = pattern.to_lowercase();
+    let indices = line
+        .to_lowercase()
+        .match_indices(&pattern)
+        .map(|(i, _)| i)
+        .collect::<Vec<usize>>();
+    for index in indices.iter() {
+        let (first, last) = line.split_at(*index);
+        let (pattern, last) = last.split_at(pattern.len());
+        println!("{}: {}{}{}", path, first, pattern.red(), last);
+    }
+}
+
+pub fn print_pattern(path: &str, pattern: &str, line: &str, cli: &Cli) {
+    if !cli.english || cli.sensitive {
+        print_pattern_sensitive(path, pattern, line);
+    } else {
+        print_pattern_insensitive(path, pattern, line);
+    }
+}
+
 pub fn search_multiple_files(cli: &Cli) {
     let paths: Vec<Result<DirEntry, Error>> = fs::read_dir(&cli.path)
         .unwrap()
         .filter(|path| path.as_ref().unwrap().path().extension().is_some())
         .filter(|path| path.as_ref().unwrap().path().extension().unwrap() == "pdf")
         .collect();
-
+    let pattern = if !cli.english {
+        cli.pattern.chars().rev().collect::<String>()
+    } else {
+        cli.pattern.clone()
+    };
     for path in paths {
         let path = path.unwrap().path();
         let content = pdf_extract::extract_text(&path).unwrap();
-        let result = if !cli.english {
-            let pattern = cli.pattern.chars().rev().collect::<String>();
+        let result = if cli.sensitive {
             search_case_sensitive(&pattern, &content)
-        } else if cli.sensitive {
-            search_case_sensitive(&cli.pattern, &content)
         } else {
-            search_case_insensitive(&cli.pattern, &content)
+            search_case_insensitive(&pattern, &content)
         };
 
         for line in result.iter() {
             let path_str = path.to_str().unwrap();
-            println!("{}: {}", &path_str, line);
+            print_pattern(path_str, &pattern, line, cli);
         }
     }
 }
 
 pub fn search_file(cli: &Cli) {
     let content = pdf_extract::extract_text(&cli.path).unwrap();
-    let result = if !cli.english {
-        let pattern = cli.pattern.chars().rev().collect::<String>();
-        search_case_sensitive(&pattern, &content)
-    } else if cli.sensitive {
-        search_case_sensitive(&cli.pattern, &content)
+    let pattern = if !cli.english {
+        cli.pattern.chars().rev().collect::<String>()
     } else {
-        search_case_insensitive(&cli.pattern, &content)
+        cli.pattern.clone()
+    };
+    let result = if cli.sensitive {
+        search_case_sensitive(&pattern, &content)
+    } else {
+        search_case_insensitive(&pattern, &content)
     };
 
     for line in result.iter() {
         let path_str = cli.path.to_str().unwrap();
-        println!("{}: {}", &path_str, line);
+        print_pattern(path_str, &pattern, line, cli);
     }
 }
 
