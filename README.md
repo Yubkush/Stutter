@@ -10,3 +10,7 @@ In order to manually install Stutter follow these steps:
 2. Unzip `stter.zip`
 3. In your terminal, run: `cp stter /bin/`
 4. Reload your terminal
+
+## Usage
+
+After installing Stutter, in your terminal, run: `stter -h` or `stter --help`
